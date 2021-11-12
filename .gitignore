@@ -25,3 +25,11 @@ backend/src/pox/ext/gini/samples/*.xml
 *.deb
 .idea/
 .venv/
+scripts/
+COPYING
+LICENSE
+SConstruct
+site_scons
+fsSL
+libslack-0.6.tar.gz
+libslack-0.6
