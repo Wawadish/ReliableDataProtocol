@@ -589,6 +589,7 @@ void routeCmd()
 char* next_arg(char* delim) {
     char *next_tok;
     next_tok = strtok(NULL, delim);
+    printf("READ ---> %s\n", next_tok);
     if (next_tok == NULL) {
         printf("[gncCmd]:: incorrect arguments.. type help gnc for usage\n");
     }
@@ -599,6 +600,16 @@ char* next_arg(char* delim) {
  */
 void udp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p, uchar *addr, uint16_t port) {
     printf("%s", (char*)p->payload);
+    uchar ipaddr_network_order[4];
+    gHtonl(ipaddr_network_order, addr);
+    udp_connect(arg, ipaddr_network_order, port);
+}
+
+/*
+ * callback function for RDP packets received
+ */
+void rdp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p, uchar *addr, uint16_t port) {
+    printf("RDP RECEIVE: %s", (char*)p->payload);
     uchar ipaddr_network_order[4];
     gHtonl(ipaddr_network_order, addr);
     udp_connect(arg, ipaddr_network_order, port);
@@ -635,6 +646,15 @@ void gncTerminate() {
     gncTerm = true;
 }
 
+char* concat(const char *s1, const char *s2)
+{
+    char *result = malloc(strlen(s1) + strlen(s2) + 1); // +1 for the null-terminator
+    // in real code you would check for errors in malloc here
+    strcpy(result, s1);
+    strcat(result, s2);
+    return result;
+}
+
 /*
  * Handler for the "gnc" command:
  * gnc [-u] <host> <port>   // initiate a connection to a remote host
@@ -649,11 +669,12 @@ void gncCmd() {
     tcp_init();
 
     char *next_tok = next_arg(" \n");
+    
     if (next_tok == NULL)
         return;
 
     // TCP
-    if (strcmp(next_tok, "-u") != 0) {
+    if ( (strcmp(next_tok, "-u") != 0) && (strcmp(next_tok, "--rdp") != 0)){
 
         // gnc -l <port>
         if (!strcmp(next_tok, "-l")) {
@@ -733,11 +754,15 @@ void gncCmd() {
             if (e3 != ERR_OK)
                 printf("shutdown err: %d\n", e3);
         }
-    }
-
+    } 
+    
     // -u for UDP
-    else {
-        char *next_tok = next_arg(" \n");
+    else{
+
+        //-u --rdp distinction
+        bool rdpFlag = (strcmp(next_tok, "--rdp") == 0);
+        next_tok = next_arg(" \n");
+        
         if (next_tok == NULL)
             return;
 
@@ -751,7 +776,13 @@ void gncCmd() {
 
             // create and initialze pcb to listen to UDP connections at the specified port
             struct udp_pcb * pcb = udp_new();
-            udp_recv(pcb, udp_recv_callback, pcb);
+
+            if(rdpFlag){
+                udp_recv(pcb, rdp_recv_callback, pcb);
+            }else{
+                udp_recv(pcb, udp_recv_callback, pcb);
+            }
+
             uchar any[4] = {0,0,0,0};
             udp_bind(pcb, any, port);
 
@@ -765,9 +796,17 @@ void gncCmd() {
                 // create pbuf and call udp_send()
                 struct pbuf *p = pbuf_alloc(PBUF_TRANSPORT, strlen(payload), PBUF_RAM);
                 p->payload = payload;
-                err_t e1 = udp_send(pcb, p);
-                if (e1 != ERR_OK)
-                    printf("udp send error: %d\n", e1);
+
+                if(rdpFlag){
+                    err_t e1 = rdp_send(pcb, p);
+                    if (e1 != ERR_OK)
+                        printf("rdp send error: %d\n", e1);
+                }else{
+                    err_t e1 = udp_send(pcb, p);
+                    if (e1 != ERR_OK)
+                        printf("udp send error: %d\n", e1);
+                }
+
             }
 
             // reset SIGINT handler to ignore the signal
@@ -799,14 +838,30 @@ void gncCmd() {
             char payload[DEFAULT_MTU];
             gncTerm = false;
             while (!gncTerm) {
-                fgets(payload, sizeof(payload), stdin);
-
+                if(rdpFlag){
+                    printf("RDP FLAG IS ACTIVE WHEN SENDING\n");
+                    char rdptext[16] = "(RDP SEND) ---> ";
+                    for(int i = 0; i < 16; i++){
+                        payload[i] = rdptext[i];
+                    }
+                    fgets(&payload[16], sizeof(payload), stdin);
+                }else{
+                    fgets(payload, sizeof(payload), stdin);
+                }
                 // create pbuf and call udp_send()
                 struct pbuf *p = pbuf_alloc(PBUF_TRANSPORT, strlen(payload), PBUF_RAM);
                 p->payload = payload;
-                err_t e1 = udp_send(pcb, p);
-                if (e1 != ERR_OK)
-                    printf("udp send error: %d\n", e1);
+
+                if(rdpFlag){
+                    err_t e1 = rdp_send(pcb, p);
+                    if (e1 != ERR_OK)
+                        printf("rdp send error: %d\n", e1);
+                }else{
+                    err_t e1 = udp_send(pcb, p);
+                    if (e1 != ERR_OK)
+                        printf("udp send error: %d\n", e1);
+                }
+                
             }
 
             // reset SIGINT handler to ignore the signal

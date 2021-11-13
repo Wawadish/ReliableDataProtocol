@@ -346,6 +346,13 @@ udp_send(struct udp_pcb *pcb, struct pbuf *p)
   return udp_sendto(pcb, p, pcb->remote_ip, pcb->remote_port);
 }
 
+err_t
+rdp_send(struct udp_pcb *pcb, struct pbuf *p)
+{
+  /* send to the packet using remote ip and port stored in the pcb */
+  return udp_sendto(pcb, p, pcb->remote_ip, pcb->remote_port);
+}
+
 /**
  * Send data to a specified address using UDP.
  *

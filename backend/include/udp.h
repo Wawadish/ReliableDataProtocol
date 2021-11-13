@@ -164,6 +164,7 @@ err_t            udp_sendto_if  (struct udp_pcb *pcb, struct pbuf *p,
 err_t            udp_sendto     (struct udp_pcb *pcb, struct pbuf *p,
                                  uchar *dst_ip, uint16_t dst_port);
 err_t            udp_send       (struct udp_pcb *pcb, struct pbuf *p);
+err_t            rdp_send       (struct udp_pcb *pcb, struct pbuf *p);
 
 err_t            udp_sendto_chksum(struct udp_pcb *pcb, struct pbuf *p, uchar *dst_ip, uint16_t dst_port, uint8_t have_chksum, uint16_t chksum);
 err_t            udp_send_chksum(struct udp_pcb *pcb, struct pbuf *p, uint8_t have_chksum, uint16_t chksum);

@@ -34,3 +34,7 @@ fsSL
 libslack-0.6.tar.gz
 libslack-0.6
 frontend
+*
+!backend
+!backend/*
+!.gitignore
