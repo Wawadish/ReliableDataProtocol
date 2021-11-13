@@ -1,3 +1,4 @@
+*.scb
 /*
 !/backend
 
@@ -14,4 +15,4 @@
 /backend/src/grouter/*
 !/backend/src/grouter/*.c
 
-!.gitignore
+.gitignore
