@@ -126,7 +126,7 @@ struct udp_pcb;
  * @param port the remote port from which the packet was received
  */
 typedef void (*udp_recv_fn)(void *arg, struct udp_pcb *pcb, struct pbuf *p,
-    uchar *addr, uint16_t port);
+    uchar *addr, uint16_t port, bool is_rdp, bool is_ack);
 
 struct udp_pcb {
 /* Common members of all PCB types */

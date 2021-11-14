@@ -48,6 +48,8 @@
 #include "memp.h"
 #include "protocols.h"
 #include "opt.h"
+#include "rdp.h"
+#include <stdbool.h>
 
 /**
  * Calculates the UDP checksum for the specified UDP packet.
@@ -198,6 +200,18 @@ udp_input(struct pbuf *p, gpacket_t *in_pkt, uchar *netmask, uchar *network)
   src = ntohs(udphdr->src);
   dest = ntohs(udphdr->dest);
 
+  // RDP processing: reserved ports for flags 16384---> 65536
+  bool is_rdp = false;
+  if(dest >= RDP_FLAG){
+    dest -= RDP_FLAG;
+    is_rdp = true;
+  }
+  bool is_ack = false;
+  if(dest >= ACK_FLAG){
+    dest -= ACK_FLAG;
+    is_ack = true;
+  }
+
   udp_debug_print(udphdr);
 
   /* print the UDP source and destination */
@@ -304,7 +318,7 @@ udp_input(struct pbuf *p, gpacket_t *in_pkt, uchar *netmask, uchar *network)
       /* callback */
       if (pcb->recv != NULL) {
         /* now the recv function is responsible for freeing p */
-        pcb->recv(pcb->recv_arg, pcb, p, iphdr->ip_src, src);
+        pcb->recv(pcb->recv_arg, pcb, p, iphdr->ip_src, src, is_rdp, is_ack);
       } else {
         /* no recv function registered? then we have to free the pbuf! */
         pbuf_free(p);
@@ -341,13 +355,6 @@ end:
  */
 err_t
 udp_send(struct udp_pcb *pcb, struct pbuf *p)
-{
-  /* send to the packet using remote ip and port stored in the pcb */
-  return udp_sendto(pcb, p, pcb->remote_ip, pcb->remote_port);
-}
-
-err_t
-rdp_send(struct udp_pcb *pcb, struct pbuf *p)
 {
   /* send to the packet using remote ip and port stored in the pcb */
   return udp_sendto(pcb, p, pcb->remote_ip, pcb->remote_port);

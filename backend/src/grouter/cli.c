@@ -13,6 +13,7 @@
  */
 
 #include "udp.h"
+#include "rdp.h"
 #include "tcp.h"
 #include "tcp_impl.h"
 #include "memp.h"
@@ -589,7 +590,6 @@ void routeCmd()
 char* next_arg(char* delim) {
     char *next_tok;
     next_tok = strtok(NULL, delim);
-    printf("READ ---> %s\n", next_tok);
     if (next_tok == NULL) {
         printf("[gncCmd]:: incorrect arguments.. type help gnc for usage\n");
     }
@@ -598,21 +598,17 @@ char* next_arg(char* delim) {
 /*
  * callback function for UDP packets received
  */
-void udp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p, uchar *addr, uint16_t port) {
-    printf("%s", (char*)p->payload);
+void udp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p, uchar *addr, uint16_t port, bool is_rdp, bool is_ack) {
+    if(!is_rdp){
+        printf("%s", (char*)p->payload);
+    }  
     uchar ipaddr_network_order[4];
     gHtonl(ipaddr_network_order, addr);
     udp_connect(arg, ipaddr_network_order, port);
-}
 
-/*
- * callback function for RDP packets received
- */
-void rdp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p, uchar *addr, uint16_t port) {
-    printf("RDP RECEIVE: %s", (char*)p->payload);
-    uchar ipaddr_network_order[4];
-    gHtonl(ipaddr_network_order, addr);
-    udp_connect(arg, ipaddr_network_order, port);
+    if(is_rdp){
+        rdp_recv_callback(arg, pcb, p, addr, port, is_rdp, is_ack);
+    }
 }
 
 /*
@@ -777,11 +773,7 @@ void gncCmd() {
             // create and initialze pcb to listen to UDP connections at the specified port
             struct udp_pcb * pcb = udp_new();
 
-            if(rdpFlag){
-                udp_recv(pcb, rdp_recv_callback, pcb);
-            }else{
-                udp_recv(pcb, udp_recv_callback, pcb);
-            }
+            udp_recv(pcb, udp_recv_callback, pcb);
 
             uchar any[4] = {0,0,0,0};
             udp_bind(pcb, any, port);
@@ -833,21 +825,24 @@ void gncCmd() {
             udp_connect(pcb, ipaddr, port);
             udp_recv(pcb, udp_recv_callback, pcb);
 
+            // TODO: We may want to change this udp_bind port, currently both machines communicate using the same port when --rdp is set.
+            // I just don't know which port to generate here...
+            // The UDP port range according to udp.c  says ""The Dynamic and/or Private Ports are those from 49152 through 65535" */"
+            // The problem is that in rdp.h, we are using the last two port bits for the RDP & ACK flags
+            // #define RDP_FLAG 32768
+            // #define ACK_FLAG 16384
+            // Therefore the dynamically generated ports don't work here, we may want to find a solution or ask the TA
+            // if this is appropriate for the assignment
+            if(rdpFlag){
+                udp_bind(pcb, pcb->local_ip, port);
+            }
+
             // keep sending user input with the TCP connection
             redefineSignalHandler(SIGINT, gncTerminate);
             char payload[DEFAULT_MTU];
             gncTerm = false;
             while (!gncTerm) {
-                if(rdpFlag){
-                    printf("RDP FLAG IS ACTIVE WHEN SENDING\n");
-                    char rdptext[16] = "(RDP SEND) ---> ";
-                    for(int i = 0; i < 16; i++){
-                        payload[i] = rdptext[i];
-                    }
-                    fgets(&payload[16], sizeof(payload), stdin);
-                }else{
-                    fgets(payload, sizeof(payload), stdin);
-                }
+                fgets(payload, sizeof(payload), stdin);
                 // create pbuf and call udp_send()
                 struct pbuf *p = pbuf_alloc(PBUF_TRANSPORT, strlen(payload), PBUF_RAM);
                 p->payload = payload;
