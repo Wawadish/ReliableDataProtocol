@@ -124,6 +124,8 @@ struct pbuf {
    */
   u16_t ref;
 
+  ulong seq;
+
 };
 
 #if LWIP_SUPPORT_CUSTOM_PBUF
