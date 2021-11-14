@@ -2,9 +2,6 @@
 #include "time.h"
 #include <stdio.h>
 
-
-unsigned static long seq = 0 ;
-
 bool responseFlag = false;
 const struct timespec sleeptime = {{0, 1000000L}}; // 1000000L = 1 millisecond, sleep otherwise crash
 const int timeout = 100; //in milliseconds
@@ -13,7 +10,8 @@ const int timeout = 100; //in milliseconds
  * RDP packets sent from user
  */
 err_t
-rdp_send(struct udp_pcb *pcb, struct pbuf *p){
+rdp_send(struct udp_pcb *pcb, struct pbuf *p)
+{
     /* send to the packet using remote ip and port stored in the pcb */
     debug_print("PCB BLOCK USED TO SEND:\n");
     printPCB(pcb);
@@ -30,7 +28,6 @@ void rdp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p, uchar *ad
         debug_print("ACK RECEIVED!\n");
         responseFlag = true;
     }else{
-        if(p->seq < seq)return;
         // Display & ACK the data
         printf("%s", (char*)p->payload);
         rdp_send_ack(arg, addr, port);
@@ -41,8 +38,6 @@ void rdp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p, uchar *ad
 
 err_t
 rdp_timed_send(struct udp_pcb *pcb, struct pbuf *p){
-    unsigned long mySeq = getSeqNum();
-    p->seq = mySeq;
     int countdown = timeout;
     responseFlag = false;
     err_t udp_err;
@@ -98,9 +93,5 @@ void printPCB(struct udp_pcb *pcb){
 
 void print_ip_and_port(uchar *addr, uint16_t port){
     debug_print("IP: %d.%d.%d.%d PORT: %d\n", addr[0], addr[1], addr[2], addr[3], port);
-}
-
-unsigned long getSeqNum(){
-    return seq++;
 }
 
