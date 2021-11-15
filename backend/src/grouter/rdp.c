@@ -50,6 +50,7 @@ rdp_timed_send(struct udp_pcb *pcb, struct pbuf *p, int* state){
 
             // This line fixes a memory leak or something, somewhere... in udp_send's call stack.
             p = pbuf_alloc(PBUF_TRANSPORT, strlen(payload), PBUF_RAM);
+            p->payload = payload;
 
             udp_err = rdp_sendto(pcb, p, pcb->remote_ip, pcb->remote_port, state);
 
@@ -61,7 +62,7 @@ rdp_timed_send(struct udp_pcb *pcb, struct pbuf *p, int* state){
         countdown -= 1; //decrement by the amount of millis you slept for
     };
 
-    printf("It took about: %d (ms) to get an ACK\n", count*timeout - countdown);
+    debug_print("It took about: %d (ms) to get an ACK\n", count*timeout - countdown);
     return udp_err;
 }
 

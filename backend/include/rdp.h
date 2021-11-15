@@ -7,7 +7,7 @@
 #define SEQ_BIT_0 4096 //second to last bit
 
 // Comment the line below to not see any debug prints
-#define RDP_DEBUG
+//#define RDP_DEBUG
 
 #ifdef RDP_DEBUG
 #define debug_print(fmt, ...) printf(fmt, ##__VA_ARGS__)
