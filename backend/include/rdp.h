@@ -26,9 +26,9 @@ struct rdp_connection_node* rdp_create_connection(struct rdp_connection_node* co
 
 int* retrieve_local_state(struct udp_pcb *pcb, uchar *addr, uint16_t port);
 
-void handle_in_seq_recv(struct udp_pcb *pcb, struct pbuf *p, int seq, uchar *addr, uint16_t port, int* state);
+void handle_in_seq_recv(struct udp_pcb *pcb, struct pbuf *p, int seq, int* state);
 
-void handle_out_of_seq_recv(struct udp_pcb *pcb, int seq, uchar *addr, uint16_t port);
+void handle_out_of_seq_recv(struct udp_pcb *pcb, int seq);
 
 void rdp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p, uchar *addr, uint16_t port, bool is_rdp, bool is_ack, int seq);
 
@@ -47,7 +47,7 @@ int get_state_flag(int* state);
 void next_state(int* state);
 
 err_t
-rdp_send_ack(struct udp_pcb *pcb, int seq, uchar *addr, uint16_t port, int* state);
+rdp_send_ack(struct udp_pcb *pcb, int seq, int* state);
 
 struct pbuf* create_ack_pbuf();
 
