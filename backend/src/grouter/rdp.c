@@ -13,7 +13,6 @@
 
 const struct timespec sleeptime = {0, 1000000L}; // 1000000L = 1 millisecond, sleep otherwise crash
 const int timeout = 10; //in milliseconds
-int connection_count = 0;
 /*
  * RDP packets sent from user
  */
@@ -21,7 +20,6 @@ err_t
 rdp_send(struct udp_pcb *pcb, struct pbuf *p)
 {
     /* send to the packet using remote ip and port stored in the pcb */
-    debug_print("CONNECTIONS TOTAL: %d\n", connection_count);
     debug_print("PCB BLOCK USED TO SEND:\n");
     printPCB(pcb);
 
@@ -142,6 +140,7 @@ int* retrieve_local_state(struct udp_pcb *pcb, uchar *addr, uint16_t port){
             print_ip_and_port((*node)->sender_ip, (*node)->sender_port);
             return (*node)->local_state;
         }
+        debug_print("Checking Next Connection\n");
         node = &((*node)->next);
     }
 
@@ -162,7 +161,6 @@ int* retrieve_local_state(struct udp_pcb *pcb, uchar *addr, uint16_t port){
 
 
 struct rdp_connection_node* rdp_create_connection(struct rdp_connection_node* connection, uchar *addr, uint16_t port){
-    connection_count += 1;
     connection = (struct rdp_connection_node*) malloc(sizeof(struct rdp_connection_node));
 
     connection->sender_ip = (uchar*)malloc(sizeof(uchar));
@@ -170,6 +168,7 @@ struct rdp_connection_node* rdp_create_connection(struct rdp_connection_node* co
     connection->sender_port = port;
     connection->local_state = (int*)malloc(sizeof(int));
     *(connection->local_state) = 0;
+    connection->next = NULL;
 
     return connection;
 }
