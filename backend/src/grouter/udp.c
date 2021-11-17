@@ -202,14 +202,25 @@ udp_input(struct pbuf *p, gpacket_t *in_pkt, uchar *netmask, uchar *network)
 
   // RDP processing: reserved ports for flags 16384---> 65536
   bool is_rdp = false;
+  bool is_ack = false;
+  int seq = 0;
   if(dest >= RDP_FLAG){
     dest -= RDP_FLAG;
     is_rdp = true;
   }
-  bool is_ack = false;
-  if(dest >= ACK_FLAG){
-    dest -= ACK_FLAG;
-    is_ack = true;
+  if(is_rdp){
+    if(dest >= ACK_FLAG){
+      dest -= ACK_FLAG;
+      is_ack = true;
+    }
+    if(dest >= SEQ_BIT_1){
+      seq += 2;
+      dest -= SEQ_BIT_1;
+    }
+    if(dest >= SEQ_BIT_0){
+      seq += 1;
+      dest -= SEQ_BIT_0;
+    }
   }
 
   udp_debug_print(udphdr);
@@ -318,7 +329,7 @@ udp_input(struct pbuf *p, gpacket_t *in_pkt, uchar *netmask, uchar *network)
       /* callback */
       if (pcb->recv != NULL) {
         /* now the recv function is responsible for freeing p */
-        pcb->recv(pcb->recv_arg, pcb, p, iphdr->ip_src, src, is_rdp, is_ack);
+        pcb->recv(pcb->recv_arg, pcb, p, iphdr->ip_src, src, is_rdp, is_ack, seq);
       } else {
         /* no recv function registered? then we have to free the pbuf! */
         pbuf_free(p);

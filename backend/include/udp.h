@@ -36,6 +36,7 @@
 #include "ip.h"
 #include "err.h"
 #include "pbuf.h"
+#include <stdbool.h>
 
 /**
  * IP_DEFAULT_TTL: Default value for Time-To-Live used by transport layers.
@@ -110,6 +111,7 @@ struct udp_hdr {
 #define UDP_FLAGS_MULTICAST_LOOP 0x08U
 
 struct udp_pcb;
+struct rdp_connection_node;
 
 /** Function prototype for udp pcb receive callback functions
  * addr and port are in same byte order as in the pcb
@@ -126,7 +128,14 @@ struct udp_pcb;
  * @param port the remote port from which the packet was received
  */
 typedef void (*udp_recv_fn)(void *arg, struct udp_pcb *pcb, struct pbuf *p,
-    uchar *addr, uint16_t port, bool is_rdp, bool is_ack);
+    uchar *addr, uint16_t port, bool is_rdp, bool is_ack, int seq);
+
+struct rdp_connection_node {
+    uchar* sender_ip;
+    uint16_t sender_port;
+    int* local_state;
+    struct rdp_connection_node* next;
+};
 
 struct udp_pcb {
 /* Common members of all PCB types */
@@ -143,7 +152,12 @@ struct udp_pcb {
   /** receive callback function */
   udp_recv_fn recv;
   /** user-supplied argument for the recv callback */
-  void *recv_arg;  
+  void *recv_arg;
+
+  /** stops the rdp resends when set to true **/
+  bool rdp_ack_received;
+
+  struct rdp_connection_node* rdp_connection;
 };
 /* udp_pcbs export for exernal reference (e.g. SNMP agent) */
 extern struct udp_pcb *udp_pcbs;

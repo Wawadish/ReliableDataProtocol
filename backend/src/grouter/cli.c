@@ -598,7 +598,7 @@ char* next_arg(char* delim) {
 /*
  * callback function for UDP packets received
  */
-void udp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p, uchar *addr, uint16_t port, bool is_rdp, bool is_ack) {
+void udp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p, uchar *addr, uint16_t port, bool is_rdp, bool is_ack, int seq) {
     if(!is_rdp){
         printf("%s", (char*)p->payload);
     }  
@@ -607,7 +607,7 @@ void udp_recv_callback(void *arg, struct udp_pcb *pcb, struct pbuf *p, uchar *ad
     udp_connect(arg, ipaddr_network_order, port);
 
     if(is_rdp){
-        rdp_recv_callback(arg, pcb, p, addr, port, is_rdp, is_ack);
+        rdp_recv_callback(arg, pcb, p, addr, port, is_rdp, is_ack, seq);
     }
 }
 
@@ -778,6 +778,8 @@ void gncCmd() {
             uchar any[4] = {0,0,0,0};
             udp_bind(pcb, any, port);
 
+            pcb->rdp_ack_received = false;
+
             // keep sending user input with the TCP connection
             char payload[DEFAULT_MTU];
             redefineSignalHandler(SIGINT, gncTerminate);
@@ -824,6 +826,7 @@ void gncCmd() {
             struct udp_pcb * pcb = udp_new();
             udp_connect(pcb, ipaddr, port);
             udp_recv(pcb, udp_recv_callback, pcb);
+            pcb->rdp_ack_received = false;
 
             // TODO: We may want to change this udp_bind port, currently both machines communicate using the same port when --rdp is set.
             // I just don't know which port to generate here...
